@@ -28,10 +28,12 @@ class AnkiClient:
         try:
             with urllib.request.urlopen(self._url, data=payload, timeout=5) as resp:
                 result: dict[str, Any] = json.loads(resp.read())
-        except (urllib.error.URLError, OSError) as exc:
+        except urllib.error.URLError as exc:
             raise AnkiConnectionError(
                 "Anki is not open — start Anki and try again"
             ) from exc
         if result.get("error"):
             raise RuntimeError(f"AnkiConnect error: {result['error']}")
+        if "result" not in result:
+            raise RuntimeError(f"Malformed AnkiConnect response: {result!r}")
         return result["result"]

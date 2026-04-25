@@ -38,3 +38,22 @@ def test_ankiconnect_error_in_response_raises_runtime_error(client: AnkiClient) 
         pytest.raises(RuntimeError, match="AnkiConnect error"),
     ):
         client._request("deckNames")
+
+
+def test_successful_request_returns_result(client: AnkiClient) -> None:
+    body = json.dumps({"result": ["DeckA", "DeckB"], "error": None}).encode()
+
+    class FakeResponse:
+        def read(self) -> bytes:
+            return body
+
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            pass
+
+    with patch("urllib.request.urlopen", return_value=FakeResponse()):
+        result = client._request("deckNames")
+
+    assert result == ["DeckA", "DeckB"]
