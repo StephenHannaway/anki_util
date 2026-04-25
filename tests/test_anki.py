@@ -190,3 +190,47 @@ def test_updates_tag_when_changed(client: AnkiClient) -> None:
         result = client.sync_deck("Test Deck", cards)
 
     assert result == SyncResult(added=0, updated=1, deleted=0, total=1)
+
+
+def test_updates_back_and_tag_when_both_changed(client: AnkiClient) -> None:
+    cards = [Card(front="Q1", back="New answer", tag="NewTag")]
+    notes_info = _make_notes_info(
+        [{"id": 100, "front": "Q1", "back": "Old answer", "tags": ["OldTag"]}]
+    )
+
+    with patch.object(
+        client,
+        "_request",
+        side_effect=[
+            1,  # createDeck
+            [100],  # findNotes
+            notes_info,  # notesInfo
+            None,  # updateNoteFields
+            None,  # removeTags
+            None,  # addTags
+        ],
+    ):
+        result = client.sync_deck("Test Deck", cards)
+
+    assert result == SyncResult(added=0, updated=1, deleted=0, total=1)
+
+
+def test_removes_tag_when_card_becomes_untagged(client: AnkiClient) -> None:
+    cards = [Card(front="Q1", back="A1", tag="")]  # no tag now
+    notes_info = _make_notes_info(
+        [{"id": 100, "front": "Q1", "back": "A1", "tags": ["OldTag"]}]
+    )
+
+    with patch.object(
+        client,
+        "_request",
+        side_effect=[
+            1,  # createDeck
+            [100],  # findNotes
+            notes_info,  # notesInfo
+            None,  # removeTags (old tag exists, new tag is empty — only remove)
+        ],
+    ):
+        result = client.sync_deck("Test Deck", cards)
+
+    assert result == SyncResult(added=0, updated=1, deleted=0, total=1)

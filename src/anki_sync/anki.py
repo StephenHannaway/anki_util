@@ -77,7 +77,7 @@ class AnkiClient:
                             "updateNoteFields",
                             note={
                                 "id": note_id,
-                                "fields": {"Front": card.front, "Back": card.back},
+                                "fields": {"Back": card.back},
                             },
                         )
                     if tags_changed:
@@ -87,7 +87,9 @@ class AnkiClient:
                                 "removeTags", notes=[note_id], tags=old_tag_str
                             )
                         if new_tags:
-                            self._request("addTags", notes=[note_id], tags=card.tag)
+                            self._request(
+                                "addTags", notes=[note_id], tags=" ".join(new_tags)
+                            )
                     updated += 1
             else:
                 new_note_id: int | None = self._request(
