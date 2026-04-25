@@ -68,10 +68,11 @@ class AnkiClient:
                 to_delete.discard(note_id)
 
                 back_changed = info["back"] != card.back
-                new_tags = [card.tag] if card.tag else []
-                tags_changed = set(info["tags"]) != set(new_tags)
+                # Only check if our section tag needs to be added — never remove tags
+                # (avoids stripping Anki system tags like leech/suspended)
+                section_tag_missing = card.tag and card.tag not in info["tags"]
 
-                if back_changed or tags_changed:
+                if back_changed or section_tag_missing:
                     if back_changed:
                         self._request(
                             "updateNoteFields",
@@ -80,16 +81,8 @@ class AnkiClient:
                                 "fields": {"Back": card.back},
                             },
                         )
-                    if tags_changed:
-                        old_tag_str = " ".join(info["tags"])
-                        if old_tag_str:
-                            self._request(
-                                "removeTags", notes=[note_id], tags=old_tag_str
-                            )
-                        if new_tags:
-                            self._request(
-                                "addTags", notes=[note_id], tags=" ".join(new_tags)
-                            )
+                    if section_tag_missing:
+                        self._request("addTags", notes=[note_id], tags=card.tag)
                     updated += 1
             else:
                 new_note_id: int | None = self._request(

@@ -1,7 +1,7 @@
 [project]
 name = "anki-sync"
 version = "0.1.0"
-description = ""
+description = "Sync Obsidian SR flashcards to Anki via AnkiConnect"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

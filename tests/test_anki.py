@@ -183,8 +183,7 @@ def test_updates_tag_when_changed(client: AnkiClient) -> None:
             1,  # createDeck
             [100],  # findNotes
             notes_info,  # notesInfo
-            None,  # removeTags
-            None,  # addTags
+            None,  # addTags (NewTag not in existing tags)
         ],
     ):
         result = client.sync_deck("Test Deck", cards)
@@ -206,7 +205,6 @@ def test_updates_back_and_tag_when_both_changed(client: AnkiClient) -> None:
             [100],  # findNotes
             notes_info,  # notesInfo
             None,  # updateNoteFields
-            None,  # removeTags
             None,  # addTags
         ],
     ):
@@ -215,8 +213,8 @@ def test_updates_back_and_tag_when_both_changed(client: AnkiClient) -> None:
     assert result == SyncResult(added=0, updated=1, deleted=0, total=1)
 
 
-def test_removes_tag_when_card_becomes_untagged(client: AnkiClient) -> None:
-    cards = [Card(front="Q1", back="A1", tag="")]  # no tag now
+def test_no_update_when_card_has_no_section_tag(client: AnkiClient) -> None:
+    cards = [Card(front="Q1", back="A1", tag="")]  # no section tag
     notes_info = _make_notes_info(
         [{"id": 100, "front": "Q1", "back": "A1", "tags": ["OldTag"]}]
     )
@@ -228,9 +226,9 @@ def test_removes_tag_when_card_becomes_untagged(client: AnkiClient) -> None:
             1,  # createDeck
             [100],  # findNotes
             notes_info,  # notesInfo
-            None,  # removeTags (old tag exists, new tag is empty — only remove)
+            # no update — untagged cards don't trigger tag updates
         ],
     ):
         result = client.sync_deck("Test Deck", cards)
 
-    assert result == SyncResult(added=0, updated=1, deleted=0, total=1)
+    assert result == SyncResult(added=0, updated=0, deleted=0, total=1)
