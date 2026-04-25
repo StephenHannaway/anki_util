@@ -4,7 +4,8 @@ from unittest.mock import patch
 
 import pytest
 
-from anki_sync.anki import AnkiClient, AnkiConnectionError
+from anki_sync.anki import AnkiClient, AnkiConnectionError, SyncResult
+from anki_sync.parser import Card
 
 
 @pytest.fixture
@@ -57,3 +58,34 @@ def test_successful_request_returns_result(client: AnkiClient) -> None:
         result = client._request("deckNames")
 
     assert result == ["DeckA", "DeckB"]
+
+
+def test_adds_new_cards_to_empty_deck(client: AnkiClient) -> None:
+    cards = [Card(front="Q1", back="A1", tag="Tag1")]
+
+    with patch.object(
+        client,
+        "_request",
+        side_effect=[
+            1,  # createDeck → deck id
+            [],  # findNotes → empty deck
+            None,  # addNote
+        ],
+    ):
+        result = client.sync_deck("Test Deck", cards)
+
+    assert result == SyncResult(added=1, updated=0, deleted=0, total=1)
+
+
+def test_empty_cards_on_empty_deck(client: AnkiClient) -> None:
+    with patch.object(
+        client,
+        "_request",
+        side_effect=[
+            1,  # createDeck
+            [],  # findNotes
+        ],
+    ):
+        result = client.sync_deck("Test Deck", [])
+
+    assert result == SyncResult(added=0, updated=0, deleted=0, total=0)
