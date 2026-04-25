@@ -11,7 +11,7 @@ class AnkiConnectionError(Exception):
     pass
 
 
-@dataclass
+@dataclass(frozen=True)
 class SyncResult:
     added: int
     updated: int
@@ -65,16 +65,19 @@ class AnkiClient:
             if card.front in existing:
                 to_delete.discard(existing[card.front]["id"])
             else:
-                self._request(
+                note_id: int | None = self._request(
                     "addNote",
                     note={
                         "deckName": deck_name,
                         "modelName": "Basic",
                         "fields": {"Front": card.front, "Back": card.back},
-                        "tags": [card.tag] if card.tag else [],
+                        "tags": [card.tag]
+                        if card.tag
+                        else [],  # empty string means no tag
                     },
                 )
-                added += 1
+                if note_id is not None:
+                    added += 1
 
         deleted = len(to_delete)
         if to_delete:

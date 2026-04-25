@@ -69,7 +69,7 @@ def test_adds_new_cards_to_empty_deck(client: AnkiClient) -> None:
         side_effect=[
             1,  # createDeck → deck id
             [],  # findNotes → empty deck
-            None,  # addNote
+            100,  # addNote → note id
         ],
     ):
         result = client.sync_deck("Test Deck", cards)
@@ -89,3 +89,41 @@ def test_empty_cards_on_empty_deck(client: AnkiClient) -> None:
         result = client.sync_deck("Test Deck", [])
 
     assert result == SyncResult(added=0, updated=0, deleted=0, total=0)
+
+
+def _make_notes_info(notes):  # type: ignore[no-untyped-def]
+    return [
+        {
+            "noteId": n["id"],
+            "fields": {
+                "Front": {"value": n["front"]},
+                "Back": {"value": n["back"]},
+            },
+            "tags": n.get("tags", []),
+        }
+        for n in notes
+    ]
+
+
+def test_deletes_cards_absent_from_md(client: AnkiClient) -> None:
+    cards = [Card(front="Q1", back="A1", tag="Tag1")]
+    notes_info = _make_notes_info(
+        [
+            {"id": 100, "front": "Q1", "back": "A1", "tags": ["Tag1"]},
+            {"id": 101, "front": "Q2", "back": "A2", "tags": ["Tag1"]},  # not in cards
+        ]
+    )
+
+    with patch.object(
+        client,
+        "_request",
+        side_effect=[
+            1,  # createDeck
+            [100, 101],  # findNotes
+            notes_info,  # notesInfo
+            None,  # deleteNotes
+        ],
+    ):
+        result = client.sync_deck("Test Deck", cards)
+
+    assert result == SyncResult(added=0, updated=0, deleted=1, total=1)
