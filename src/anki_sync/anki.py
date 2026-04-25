@@ -63,9 +63,34 @@ class AnkiClient:
 
         for card in cards:
             if card.front in existing:
-                to_delete.discard(existing[card.front]["id"])
+                info = existing[card.front]
+                note_id: int = info["id"]
+                to_delete.discard(note_id)
+
+                back_changed = info["back"] != card.back
+                new_tags = [card.tag] if card.tag else []
+                tags_changed = set(info["tags"]) != set(new_tags)
+
+                if back_changed or tags_changed:
+                    if back_changed:
+                        self._request(
+                            "updateNoteFields",
+                            note={
+                                "id": note_id,
+                                "fields": {"Front": card.front, "Back": card.back},
+                            },
+                        )
+                    if tags_changed:
+                        old_tag_str = " ".join(info["tags"])
+                        if old_tag_str:
+                            self._request(
+                                "removeTags", notes=[note_id], tags=old_tag_str
+                            )
+                        if new_tags:
+                            self._request("addTags", notes=[note_id], tags=card.tag)
+                    updated += 1
             else:
-                note_id: int | None = self._request(
+                new_note_id: int | None = self._request(
                     "addNote",
                     note={
                         "deckName": deck_name,
@@ -76,7 +101,7 @@ class AnkiClient:
                         else [],  # empty string means no tag
                     },
                 )
-                if note_id is not None:
+                if new_note_id is not None:
                     added += 1
 
         deleted = len(to_delete)

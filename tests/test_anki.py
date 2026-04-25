@@ -127,3 +127,66 @@ def test_deletes_cards_absent_from_md(client: AnkiClient) -> None:
         result = client.sync_deck("Test Deck", cards)
 
     assert result == SyncResult(added=0, updated=0, deleted=1, total=1)
+
+
+def test_no_update_when_card_unchanged(client: AnkiClient) -> None:
+    cards = [Card(front="Q1", back="A1", tag="Tag1")]
+    notes_info = _make_notes_info(
+        [{"id": 100, "front": "Q1", "back": "A1", "tags": ["Tag1"]}]
+    )
+
+    with patch.object(
+        client,
+        "_request",
+        side_effect=[
+            1,  # createDeck
+            [100],  # findNotes
+            notes_info,  # notesInfo
+        ],
+    ):
+        result = client.sync_deck("Test Deck", cards)
+
+    assert result == SyncResult(added=0, updated=0, deleted=0, total=1)
+
+
+def test_updates_back_when_changed(client: AnkiClient) -> None:
+    cards = [Card(front="Q1", back="New answer", tag="Tag1")]
+    notes_info = _make_notes_info(
+        [{"id": 100, "front": "Q1", "back": "Old answer", "tags": ["Tag1"]}]
+    )
+
+    with patch.object(
+        client,
+        "_request",
+        side_effect=[
+            1,  # createDeck
+            [100],  # findNotes
+            notes_info,  # notesInfo
+            None,  # updateNoteFields
+        ],
+    ):
+        result = client.sync_deck("Test Deck", cards)
+
+    assert result == SyncResult(added=0, updated=1, deleted=0, total=1)
+
+
+def test_updates_tag_when_changed(client: AnkiClient) -> None:
+    cards = [Card(front="Q1", back="A1", tag="NewTag")]
+    notes_info = _make_notes_info(
+        [{"id": 100, "front": "Q1", "back": "A1", "tags": ["OldTag"]}]
+    )
+
+    with patch.object(
+        client,
+        "_request",
+        side_effect=[
+            1,  # createDeck
+            [100],  # findNotes
+            notes_info,  # notesInfo
+            None,  # removeTags
+            None,  # addTags
+        ],
+    ):
+        result = client.sync_deck("Test Deck", cards)
+
+    assert result == SyncResult(added=0, updated=1, deleted=0, total=1)
