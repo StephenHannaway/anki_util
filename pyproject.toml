@@ -4,7 +4,9 @@ version = "0.1.0"
 description = ""
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "python-dotenv>=1.2.2",
+]
 
 [project.scripts]
 anki-sync = "anki_sync.main:main"
