@@ -52,6 +52,10 @@ def sync_all(client: AnkiClient, vault: Path) -> None:
         print("No flashcard decks found.", file=sys.stderr)
         sys.exit(1)
     for topic in topics:
+        path = flashcard_file(vault, topic)
+        if not path.exists():
+            print(f"No flashcard file found for '{topic}', skipping.", file=sys.stderr)
+            continue
         sync_topic(client, vault, topic)
 
 
@@ -75,8 +79,8 @@ def main() -> None:
         if args.all:
             sync_all(client, vault)
         else:
-            assert args.topic is not None
-            sync_topic(client, vault, args.topic)
+            if args.topic:
+                sync_topic(client, vault, args.topic)
     except AnkiConnectionError as exc:
         print(str(exc), file=sys.stderr)
         sys.exit(1)
