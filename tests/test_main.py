@@ -42,6 +42,12 @@ def test_sync_topic_prints_summary(
 
     sync_topic(client, tmp_path, "AWS Compute")
 
+    client.sync_deck.assert_called_once()
+    call_args = client.sync_deck.call_args
+    assert call_args.args[0] == "AWS Compute"  # deck name
+    assert len(call_args.args[1]) == 1  # one card parsed
+    assert call_args.args[1][0].front == "What is EC2?"
+
     captured = capsys.readouterr()
     assert captured.out == "AWS Compute: 1 added, 0 updated, 0 deleted (1 total)\n"
 

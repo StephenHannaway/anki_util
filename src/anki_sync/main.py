@@ -2,6 +2,7 @@ import argparse
 import os
 import sys
 from pathlib import Path
+from typing import cast
 
 from dotenv import load_dotenv
 
@@ -79,8 +80,7 @@ def main() -> None:
         if args.all:
             sync_all(client, vault)
         else:
-            if args.topic:
-                sync_topic(client, vault, args.topic)
+            sync_topic(client, vault, cast(str, args.topic))
     except AnkiConnectionError as exc:
         print(str(exc), file=sys.stderr)
         sys.exit(1)
