@@ -113,3 +113,12 @@ def test_multiple_cards_same_section(tmp_path: Path) -> None:
 def test_empty_file_returns_empty_list(tmp_path: Path) -> None:
     path = _write(tmp_path, "")
     assert parse_flashcard_file(path) == []
+
+
+def test_strips_inline_sr_comment_from_back(tmp_path: Path) -> None:
+    path = _write(
+        tmp_path,
+        "What is EC2? :: Elastic Compute Cloud <!--SR:!2026-04-25,1,230-->\n",
+    )
+    cards = parse_flashcard_file(path)
+    assert cards == [Card(front="What is EC2?", back="Elastic Compute Cloud", tag="")]

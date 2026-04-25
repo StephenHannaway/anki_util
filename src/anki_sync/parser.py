@@ -39,6 +39,7 @@ def parse_flashcard_file(path: Path) -> list[Card]:
             continue
         if " :: " in line:
             front, _, back = line.partition(" :: ")
+            back = re.sub(r"\s*<!--SR:[^>]*-->", "", back).strip()
             cards.append(Card(front=front.strip(), back=back.strip(), tag=current_tag))
 
     return cards
