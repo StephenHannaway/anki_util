@@ -17,5 +17,10 @@ def test_normalise_heading_with_en_dash() -> None:
     assert _normalise_tag("## Auto Scaling \u2013 Policies") == "Auto-Scaling-Policies"
 
 
-def test_card_equality() -> None:
-    assert Card(front="Q", back="A", tag="T") == Card(front="Q", back="A", tag="T")
+def test_normalise_heading_with_horizontal_bar() -> None:
+    assert _normalise_tag("## S3 \u2015 Storage") == "S3-Storage"
+
+
+def test_card_is_hashable() -> None:
+    s = {Card(front="Q", back="A", tag="T")}
+    assert Card(front="Q", back="A", tag="T") in s
