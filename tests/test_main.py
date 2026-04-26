@@ -7,6 +7,8 @@ import pytest
 from anki_sync.anki import SyncResult
 from anki_sync.main import flashcard_file, get_vault_path, sync_topic
 
+FDIR = "Flashcards"
+
 
 def test_get_vault_path_returns_path_from_env(tmp_path: Path) -> None:
     with patch.dict(os.environ, {"SECOND_BRAIN_PATH": str(tmp_path)}):
@@ -20,18 +22,15 @@ def test_get_vault_path_exits_when_env_not_set() -> None:
 
 
 def test_flashcard_file_constructs_correct_path(tmp_path: Path) -> None:
-    result = flashcard_file(tmp_path, "AWS Compute")
-    expected = (
-        tmp_path / "FLASHCARDS_DIR" / "AWS Compute" / "AWS Compute - Flashcards.md"
-    )
+    result = flashcard_file(tmp_path, FDIR, "AWS Compute")
+    expected = tmp_path / FDIR / "AWS Compute" / "AWS Compute - Flashcards.md"
     assert result == expected
 
 
 def test_sync_topic_prints_summary(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    # Create a real flashcard file in the expected location
-    deck_dir = tmp_path / "FLASHCARDS_DIR" / "AWS Compute"
+    deck_dir = tmp_path / FDIR / "AWS Compute"
     deck_dir.mkdir(parents=True)
     (deck_dir / "AWS Compute - Flashcards.md").write_text(
         "What is EC2? :: Elastic Compute Cloud\n", encoding="utf-8"
@@ -40,12 +39,12 @@ def test_sync_topic_prints_summary(
     client = MagicMock()
     client.sync_deck.return_value = SyncResult(added=1, updated=0, deleted=0, total=1)
 
-    sync_topic(client, tmp_path, "AWS Compute")
+    sync_topic(client, tmp_path, FDIR, "AWS Compute")
 
     client.sync_deck.assert_called_once()
     call_args = client.sync_deck.call_args
-    assert call_args.args[0] == "AWS Compute"  # deck name
-    assert len(call_args.args[1]) == 1  # one card parsed
+    assert call_args.args[0] == "AWS Compute"
+    assert len(call_args.args[1]) == 1
     assert call_args.args[1][0].front == "What is EC2?"
 
     captured = capsys.readouterr()
@@ -55,4 +54,4 @@ def test_sync_topic_prints_summary(
 def test_sync_topic_exits_when_file_missing(tmp_path: Path) -> None:
     client = MagicMock()
     with pytest.raises(SystemExit):
-        sync_topic(client, tmp_path, "AWS Compute")
+        sync_topic(client, tmp_path, FDIR, "AWS Compute")

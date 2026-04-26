@@ -11,8 +11,6 @@ from anki_sync.parser import parse_flashcard_file
 
 load_dotenv()
 
-FLASHCARDS_DIR = "09 \u00b7 Flashcards"
-
 
 def get_vault_path() -> Path:
     raw = os.environ.get("SECOND_BRAIN_PATH", "")
@@ -29,12 +27,25 @@ def get_anki_url() -> str:
     return os.environ.get("ANKI_CONNECT_URL", "http://localhost:8765")
 
 
-def flashcard_file(vault: Path, topic: str) -> Path:
-    return vault / FLASHCARDS_DIR / topic / f"{topic} - Flashcards.md"
+def get_flashcards_dir() -> str:
+    raw = os.environ.get("FLASHCARDS_DIR", "")
+    if not raw:
+        print(
+            "Error: FLASHCARDS_DIR not set. Add it to your .env file.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    return raw
 
 
-def sync_topic(client: AnkiClient, vault: Path, topic: str) -> None:
-    path = flashcard_file(vault, topic)
+def flashcard_file(vault: Path, flashcards_dir: str, topic: str) -> Path:
+    return vault / flashcards_dir / topic / f"{topic} - Flashcards.md"
+
+
+def sync_topic(
+    client: AnkiClient, vault: Path, flashcards_dir: str, topic: str
+) -> None:
+    path = flashcard_file(vault, flashcards_dir, topic)
     if not path.exists():
         print(f"No flashcard file found for '{topic}'", file=sys.stderr)
         sys.exit(1)
@@ -46,18 +57,18 @@ def sync_topic(client: AnkiClient, vault: Path, topic: str) -> None:
     )
 
 
-def sync_all(client: AnkiClient, vault: Path) -> None:
-    flashcards_root = vault / FLASHCARDS_DIR
+def sync_all(client: AnkiClient, vault: Path, flashcards_dir: str) -> None:
+    flashcards_root = vault / flashcards_dir
     topics = sorted(d.name for d in flashcards_root.iterdir() if d.is_dir())
     if not topics:
         print("No flashcard decks found.", file=sys.stderr)
         sys.exit(1)
     for topic in topics:
-        path = flashcard_file(vault, topic)
+        path = flashcard_file(vault, flashcards_dir, topic)
         if not path.exists():
             print(f"No flashcard file found for '{topic}', skipping.", file=sys.stderr)
             continue
-        sync_topic(client, vault, topic)
+        sync_topic(client, vault, flashcards_dir, topic)
 
 
 def main() -> None:
@@ -74,13 +85,14 @@ def main() -> None:
         parser.error("Cannot specify both a topic and --all")
 
     vault = get_vault_path()
+    flashcards_dir = get_flashcards_dir()
     client = AnkiClient(url=get_anki_url())
 
     try:
         if args.all:
-            sync_all(client, vault)
+            sync_all(client, vault, flashcards_dir)
         else:
-            sync_topic(client, vault, cast(str, args.topic))
+            sync_topic(client, vault, flashcards_dir, cast(str, args.topic))
     except AnkiConnectionError as exc:
         print(str(exc), file=sys.stderr)
         sys.exit(1)
