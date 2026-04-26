@@ -85,17 +85,20 @@ class AnkiClient:
                         self._request("addTags", notes=[note_id], tags=card.tag)
                     updated += 1
             else:
-                new_note_id: int | None = self._request(
-                    "addNote",
-                    note={
-                        "deckName": deck_name,
-                        "modelName": "Basic",
-                        "fields": {"Front": card.front, "Back": card.back},
-                        "tags": [card.tag]
-                        if card.tag
-                        else [],  # empty string means no tag
-                    },
-                )
+                try:
+                    new_note_id: int | None = self._request(
+                        "addNote",
+                        note={
+                            "deckName": deck_name,
+                            "modelName": "Basic",
+                            "fields": {"Front": card.front, "Back": card.back},
+                            "tags": [card.tag] if card.tag else [],
+                        },
+                    )
+                except RuntimeError as exc:
+                    if "duplicate" not in str(exc).lower():
+                        raise
+                    new_note_id = None
                 if new_note_id is not None:
                     added += 1
 

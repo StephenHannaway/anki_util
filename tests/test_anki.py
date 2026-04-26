@@ -232,3 +232,23 @@ def test_no_update_when_card_has_no_section_tag(client: AnkiClient) -> None:
         result = client.sync_deck("Test Deck", cards)
 
     assert result == SyncResult(added=0, updated=0, deleted=0, total=1)
+
+
+def test_duplicate_error_on_add_is_silently_skipped(client: AnkiClient) -> None:
+    cards = [Card(front="Q1", back="A1", tag="Tag1")]
+
+    def side_effect(action: str, **kwargs: object) -> object:
+        if action == "createDeck":
+            return 1
+        if action == "findNotes":
+            return []
+        if action == "addNote":
+            raise RuntimeError(
+                "AnkiConnect error: cannot create note because it is a duplicate"
+            )
+        return None
+
+    with patch.object(client, "_request", side_effect=side_effect):
+        result = client.sync_deck("Test Deck", cards)
+
+    assert result == SyncResult(added=0, updated=0, deleted=0, total=1)
